@@ -35,6 +35,17 @@ export default function Home() {
     checkUser();
     const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') checkUser();
+      
+      // --- PENANGKAP EVENT LUPA PASSWORD ---
+      if (event === 'PASSWORD_RECOVERY') {
+        const newPassword = prompt("🔐 MASA PEMULIHAN AKUN\nSilakan ketik password baru Anda di bawah ini:");
+        if (newPassword) {
+          supabase.auth.updateUser({ password: newPassword }).then(({ error }) => {
+            if (error) alert("Gagal mengubah password: " + error.message);
+            else alert("✅ Password berhasil diperbarui! Silakan nikmati aplikasi.");
+          });
+        }
+      }
     });
     return () => { authListener.subscription.unsubscribe(); };
   }, []);
@@ -78,6 +89,25 @@ export default function Home() {
       alert("Gagal: " + error.message);
     } finally {
       setAuthLoading(false);
+    }
+  };
+
+  const handleResetPassword = async () => {
+    if (!email) {
+      alert("Silakan ketik alamat email Anda terlebih dahulu di kolom Email, lalu klik Lupa Password.");
+      return;
+    }
+    
+    setAuthLoading(true);
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: 'https://tokoteks.vercel.app/', // Pastikan kembali ke website Anda
+    });
+    setAuthLoading(false);
+
+    if (error) {
+      alert("Gagal mengirim link pemulihan: " + error.message);
+    } else {
+      alert("✅ Link pemulihan telah dikirim! Silakan cek kotak masuk atau folder spam di email: " + email);
     }
   };
 
@@ -252,7 +282,21 @@ export default function Home() {
                 <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="contoh@email.com" />
               </div>
               <div>
-                <label className="block text-sm font-bold text-slate-700 mb-1">Password</label>
+                <div className="flex justify-between items-center mb-1">
+                  <label className="block text-sm font-bold text-slate-700">Password</label>
+                  
+                  {/* TOMBOL LUPA PASSWORD (Hanya muncul di mode Masuk/Bukan Daftar) */}
+                  {!isSignUp && (
+                    <button 
+                      type="button" 
+                      onClick={handleResetPassword} 
+                      className="text-xs text-blue-600 hover:text-blue-800 font-bold hover:underline"
+                    >
+                      Lupa Password?
+                    </button>
+                  )}
+                </div>
+                
                 <div className="relative">
                   <input 
                     type={showPassword ? "text" : "password"} 
