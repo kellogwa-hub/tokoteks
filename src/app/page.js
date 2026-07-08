@@ -18,6 +18,7 @@ export default function Home() {
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [authLoading, setAuthLoading] = useState(false);
 
   // --- STATE UNTUK AI ---
@@ -222,7 +223,24 @@ export default function Home() {
               </div>
               <div>
                 <label className="block text-sm font-bold text-slate-700 mb-1">Password</label>
-                <input type="password" required value={password} onChange={(e) => setPassword(e.target.value)} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Minimal 6 karakter" />
+                <div className="relative">
+                  <input 
+                    type={showPassword ? "text" : "password"} 
+                    required 
+                    value={password} 
+                    onChange={(e) => setPassword(e.target.value)} 
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 pr-12" 
+                    placeholder="Minimal 6 karakter" 
+                  />
+                  <button 
+                    type="button" 
+                    onClick={() => setShowPassword(!showPassword)} 
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-xl text-slate-400 hover:text-blue-500 transition-colors focus:outline-none"
+                    title={showPassword ? "Sembunyikan Password" : "Lihat Password"}
+                  >
+                    {showPassword ? '🙈' : '👁️'}
+                  </button>
+                </div>
               </div>
               <button type="submit" disabled={authLoading} className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-lg transition-colors">
                 {authLoading ? 'Memproses...' : (isSignUp ? 'Daftar Sekarang' : 'Masuk')}
