@@ -13,6 +13,13 @@ export default function Home() {
   const [user, setUser] = useState(null);
   const [credits, setCredits] = useState(0);
 
+  // --- STATE UNTUK MODAL LOGIN (EMAIL/PASSWORD) ---
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [isSignUp, setIsSignUp] = useState(false);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [authLoading, setAuthLoading] = useState(false);
+
   // --- STATE UNTUK AI ---
   const [image, setImage] = useState(null);
   const [targetPlatform, setTargetPlatform] = useState('Shopee / Tokopedia (Fokus SEO)');
@@ -42,25 +49,35 @@ export default function Home() {
     }
   };
 
-  const login = async () => {
-  const email = prompt("Masukkan email Anda untuk menerima link akses otomatis (Magic Link):");
-  if (email) {
-    alert("Sedang mengirim tiket masuk... Mohon tunggu sebentar.");
-    const { error } = await supabase.auth.signInWithOtp({ email });
-    if (error) {
-      alert("Gagal mengirim link: " + error.message);
-    } else {
-      alert("✅ Tiket ajaib telah dikirim! Silakan cek Kotak Masuk atau folder Spam di email Anda (" + email + "), lalu klik link tersebut untuk langsung masuk ke aplikasi.");
+  const handleAuth = async (e) => {
+    e.preventDefault();
+    setAuthLoading(true);
+    try {
+      if (isSignUp) {
+        // Proses Daftar
+        const { error } = await supabase.auth.signUp({ email, password });
+        if (error) throw error;
+        alert("Pendaftaran berhasil! Anda sekarang sudah masuk.");
+        setShowAuthModal(false);
+      } else {
+        // Proses Masuk
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) throw error;
+        setShowAuthModal(false);
+      }
+    } catch (error) {
+      alert("Gagal: " + error.message);
+    } finally {
+      setAuthLoading(false);
     }
-  }
-};
+  };
 
   const logout = async () => {
     await supabase.auth.signOut();
   };
 
   const handleTopUp = async () => {
-    if (!user) return alert("Silakan login terlebih dahulu!");
+    if (!user) return setShowAuthModal(true);
     try {
       const res = await fetch('/api/topup', {
         method: 'POST',
@@ -110,7 +127,7 @@ export default function Home() {
   };
 
   const handleGenerate = async () => {
-    if (!user) return alert('Anda harus login terlebih dahulu!');
+    if (!user) return setShowAuthModal(true);
     if (credits <= 0) return alert('Token Anda habis! Silakan isi ulang.');
     if (!image) return alert('Silakan unggah foto produk terlebih dahulu!');
     
@@ -127,10 +144,7 @@ export default function Home() {
       const data = await response.json();
       
       if (data.success) {
-        // Kurangi token secara lokal agar UI langsung update
         setCredits((prev) => prev - 1);
-        
-        // Memecah JSON murni
         const parsedResult = JSON.parse(data.result);
         setCopywriting(parsedResult);
       } else {
@@ -156,8 +170,40 @@ export default function Home() {
   };
 
   return (
-    <main className="min-h-screen bg-slate-50 flex flex-col items-center">
+    <main className="min-h-screen bg-slate-50 flex flex-col items-center relative">
       
+      {/* POP-UP MODAL LOGIN & DAFTAR */}
+      {showAuthModal && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex justify-center items-center p-4 animate-fadeIn">
+          <div className="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-md relative">
+            <button onClick={() => setShowAuthModal(false)} className="absolute top-4 right-4 text-slate-400 hover:text-red-500 font-bold text-xl">✕</button>
+            <h2 className="text-2xl font-extrabold text-slate-800 mb-2">{isSignUp ? 'Daftar Akun Baru' : 'Masuk ke TokoTeks'}</h2>
+            <p className="text-sm text-slate-500 mb-6">{isSignUp ? 'Buat akun untuk mulai meracik teks jualan.' : 'Silakan masuk untuk melanjutkan.'}</p>
+            
+            <form onSubmit={handleAuth} className="space-y-4">
+              <div>
+                <label className="block text-sm font-bold text-slate-700 mb-1">Email</label>
+                <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="contoh@email.com" />
+              </div>
+              <div>
+                <label className="block text-sm font-bold text-slate-700 mb-1">Password</label>
+                <input type="password" required value={password} onChange={(e) => setPassword(e.target.value)} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Minimal 6 karakter" />
+              </div>
+              <button type="submit" disabled={authLoading} className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-lg transition-colors">
+                {authLoading ? 'Memproses...' : (isSignUp ? 'Daftar Sekarang' : 'Masuk')}
+              </button>
+            </form>
+            
+            <div className="mt-6 text-center text-sm text-slate-600">
+              {isSignUp ? 'Sudah punya akun?' : 'Belum punya akun?'} 
+              <button type="button" onClick={() => setIsSignUp(!isSignUp)} className="ml-1 text-blue-600 font-bold hover:underline">
+                {isSignUp ? 'Masuk di sini' : 'Daftar di sini'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* HEADER / NAVBAR */}
       <header className="w-full bg-white border-b border-slate-200 px-6 py-4 flex justify-between items-center shadow-sm sticky top-0 z-50">
         <div className="font-extrabold text-xl text-blue-600 tracking-tight">TokoTeks</div>
@@ -167,15 +213,11 @@ export default function Home() {
               <div className="flex items-center gap-2 bg-yellow-50 px-3 py-1.5 rounded-full border border-yellow-200 shadow-sm">
                 <span className="text-sm font-bold text-yellow-700">🪙 {credits} Token</span>
               </div>
-              <button onClick={handleTopUp} className="text-sm font-bold bg-green-500 hover:bg-green-600 text-white px-4 py-1.5 rounded-full transition-colors shadow-sm">
-                + Isi Ulang
-              </button>
-              <button onClick={logout} className="text-sm font-medium text-slate-500 hover:text-red-500 transition-colors">
-                Keluar
-              </button>
+              <button onClick={handleTopUp} className="text-sm font-bold bg-green-500 hover:bg-green-600 text-white px-4 py-1.5 rounded-full transition-colors shadow-sm">+ Isi Ulang</button>
+              <button onClick={logout} className="text-sm font-medium text-slate-500 hover:text-red-500 transition-colors">Keluar</button>
             </>
           ) : (
-            <button onClick={login} className="text-sm font-bold bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-full transition-colors shadow-sm">
+            <button onClick={() => setShowAuthModal(true)} className="text-sm font-bold bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-full transition-colors shadow-sm">
               Masuk / Daftar
             </button>
           )}
@@ -245,7 +287,6 @@ export default function Home() {
         {copywriting && (
           <div className="mt-8 space-y-6 pt-6 border-t border-slate-100 animate-fadeIn">
             <h3 className="text-lg font-bold text-slate-800">🎉 Hasil Racikan AI Selesai:</h3>
-            
             <div className="p-4 bg-blue-50 border border-blue-200 rounded-xl">
               <div className="flex justify-between items-center mb-3">
                 <span className="text-xs font-extrabold text-blue-700 uppercase tracking-wider">📌 Judul Produk (SEO Friendly)</span>
@@ -255,7 +296,6 @@ export default function Home() {
               </div>
               <p className="text-slate-800 font-semibold leading-relaxed">{copywriting.title}</p>
             </div>
-
             <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl">
               <div className="flex justify-between items-center mb-3">
                 <span className="text-xs font-extrabold text-slate-600 uppercase tracking-wider">📝 Deskripsi Lengkap Produk</span>
