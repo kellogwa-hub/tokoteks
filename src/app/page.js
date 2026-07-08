@@ -1,70 +1,17 @@
-"use client";
-import { useState, useRef, useEffect } from "react";
-import { supabase } from "../lib/supabase"; 
-import { useRouter } from "next/navigation"; 
-import Script from "next/script"; // <-- Alat baru untuk memuat sistem Midtrans
+'use client';
+
+import { useState } from 'react';
 
 export default function Home() {
-  const router = useRouter();
-  const [user, setUser] = useState(null); 
-  const [kredit, setKredit] = useState(0); 
-  const [isCheckingUser, setIsCheckingUser] = useState(true);
-
-  const [imagePreview, setImagePreview] = useState(null);
-  const [imageFile, setImageFile] = useState(null);
-  const [platform, setPlatform] = useState("ecommerce");
-  const [style, setStyle] = useState("fomo");
+  const [image, setImage] = useState(null);
+  const [targetPlatform, setTargetPlatform] = useState('Shopee / Tokopedia (Fokus SEO)');
+  const [style, setStyle] = useState('🔥 Hard Selling (Mendesak/FOMO)');
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState("");
+  const [copywriting, setCopywriting] = useState(null);
+  const [copiedTitle, setCopiedTitle] = useState(false);
+  const [copiedDesc, setCopiedDesc] = useState(false);
 
-  const fileInputRef = useRef(null);
-
-  useEffect(() => {
-    const checkUser = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        router.push('/login'); 
-      } else {
-        setUser(session.user); 
-        const { data: creditData } = await supabase
-          .from('user_credits')
-          .select('kredit')
-          .eq('id', session.user.id)
-          .single();
-        if (creditData) setKredit(creditData.kredit);
-      }
-      setIsCheckingUser(false);
-    };
-
-    checkUser();
-    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
-      if (!session) router.push('/login');
-    });
-
-    return () => { authListener.subscription.unsubscribe(); };
-  }, [router]);
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    router.push('/login');
-  };
-
-  const handleImageClick = () => { fileInputRef.current.click(); };
-  const handleFileChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setImageFile(file);
-      setImagePreview(URL.createObjectURL(file));
-    }
-  };
-  const handleRemoveImage = (e) => {
-    e.stopPropagation();
-    setImagePreview(null);
-    setImageFile(null);
-    setResult("");
-    if (fileInputRef.current) fileInputRef.current.value = "";
-  };
-  // Mesin Kompresi Gambar Otomatis
+  // 1. Mesin Kompresi Gambar Otomatis (Anti-Error Vercel)
   const fileToBase64 = (file) => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -74,7 +21,7 @@ export default function Home() {
         img.src = event.target.result;
         img.onload = () => {
           const canvas = document.createElement('canvas');
-          const MAX_WIDTH = 800; // Membatasi lebar maksimal gambar agar aman di Vercel
+          const MAX_WIDTH = 800; // Membatasi lebar gambar demi keamanan memori server
           const scaleSize = MAX_WIDTH / img.width;
           canvas.width = MAX_WIDTH;
           canvas.height = img.height * scaleSize;
@@ -82,7 +29,7 @@ export default function Home() {
           const ctx = canvas.getContext('2d');
           ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
           
-          // Mengubah hasil padatan ke JPEG kualitas 70% (Sangat kecil & aman!)
+          // Mengubah hasil padatan ke format JPEG kualitas 70% (Sangat ringan!)
           resolve(canvas.toDataURL('image/jpeg', 0.7));
         };
       };
@@ -90,156 +37,179 @@ export default function Home() {
     });
   };
 
-  const handleGenerate = async () => {
-    if (!imageFile) return alert("Tolong unggah foto produk terlebih dahulu ya, Bos!");
-    if (kredit <= 0) return alert("Token AI Anda habis! Silakan Top Up di pojok kanan atas.");
+  const handleImageChange = async (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      try {
+        const compressedBase64 = await fileToBase64(file);
+        setImage(compressedBase64);
+      } catch (error) {
+        alert('Gagal memproses gambar');
+      }
+    }
+  };
 
+  // 2. Eksekusi Pengiriman ke Backend
+  const handleGenerate = async () => {
+    if (!image) return alert('Silakan unggah foto produk terlebih dahulu!');
+    
     setLoading(true);
-    setResult("");
+    setCopywriting(null);
 
     try {
-      const base64Image = await fileToBase64(imageFile);
-      const response = await fetch("/api/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ image: base64Image, platform, style, userId: user.id }),
+      const response = await fetch('/api/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ image, targetPlatform, style }),
       });
 
       const data = await response.json();
+      
       if (data.success) {
-        setResult(data.text);
-        setKredit(data.sisaKredit); 
+        // Mengubah teks JSON dari Gemini menjadi objek Javascript rapi
+        const parsedResult = JSON.parse(data.result);
+        setCopywriting(parsedResult);
+      } else {
+        alert('Gagal meracik teks: ' + (data.error || 'Terjadi kesalahan server'));
       }
-      else alert("Pesan Sistem: " + data.error);
     } catch (error) {
-      alert("Gagal menghubungi server: " + error.message);
+      console.error(error);
+      alert('Terjadi kesalahan koneksi sistem');
     } finally {
       setLoading(false);
     }
   };
 
-  // ==========================================
-  // FUNGSI KASIR: Membuka Pop-up Midtrans
-  // ==========================================
-  const handleTopUp = async () => {
-    try {
-      const res = await fetch('/api/topup', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user.id, email: user.email })
-      });
-      const data = await res.json();
-
-      if (data.success) {
-        window.snap.pay(data.token, {
-          onSuccess: async function(result) {
-            // Jika pembayaran berhasil (LUNAS), tambah 10 token ke brankas!
-            const koinBaru = kredit + 10;
-            await supabase.from('user_credits').update({ kredit: koinBaru }).eq('id', user.id);
-            setKredit(koinBaru);
-            alert("LUNAS! 10 Token telah ditambahkan ke akun Anda. 🎉");
-          },
-          onPending: function(result) { alert("Menunggu pembayaran Anda diselesaikan..."); },
-          onError: function(result) { alert("Waduh, pembayaran gagal!"); },
-          onClose: function() { console.log("Jendela ditutup"); }
-        });
-      } else {
-        alert("Sistem kasir sedang sibuk: " + data.error);
-      }
-    } catch (error) {
-      alert("Error: " + error.message);
+  // 3. Fungsi Copy Mandiri dengan Efek Visual Berubah Teks
+  const handleCopy = (text, type) => {
+    navigator.clipboard.writeText(text);
+    if (type === 'title') {
+      setCopiedTitle(true);
+      setTimeout(() => setCopiedTitle(false), 2000);
+    } else {
+      setCopiedDesc(true);
+      setTimeout(() => setCopiedDesc(false), 2000);
     }
   };
 
-  if (isCheckingUser) return <div className="min-h-screen flex items-center justify-center bg-gray-100 text-blue-600 font-bold">Memuat TokoTeks...</div>;
-  if (!user) return null; 
-
   return (
-    <>
-      {/* Skrip Resmi Midtrans Sandbox */}
-      <Script 
-        src="https://app.sandbox.midtrans.com/snap/snap.js" 
-        data-client-key={process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY} 
-        strategy="lazyOnload" 
-      />
+    <main className="min-height-screen bg-slate-50 flex flex-col items-center py-12 px-4">
+      {/* CARD UTAMA UTK INPUT */}
+      <div className="w-full max-w-2xl bg-white rounded-2xl shadow-xl border border-slate-100 p-6 md:p-8">
+        
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-extrabold text-blue-600 tracking-tight">TokoTeks</h1>
+          <p className="text-slate-500 font-medium mt-1">Asisten AI Copywriting UMKM 🚀</p>
+        </div>
 
-      <main className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
-        <div className="bg-white w-full max-w-md rounded-2xl shadow-xl p-6 relative">
-          
-          <div className="absolute top-4 right-4 flex flex-col items-end">
-            <span className="text-xs text-gray-500 font-medium mb-1">{user.email}</span>
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-extrabold bg-yellow-100 text-yellow-700 px-2 py-1.5 rounded-md shadow-sm border border-yellow-300">
-                🪙 {kredit} Token
-              </span>
-              {/* TOMBOL TOP UP BARU */}
-              <button onClick={handleTopUp} className="text-xs bg-green-500 hover:bg-green-600 text-white px-3 py-1.5 rounded-md transition font-semibold shadow-sm">
-                + Isi Ulang
+        {/* AREA UNGHAH FOTO */}
+        <div className="mb-6">
+          <label className="block text-sm font-bold text-slate-700 mb-2">📸 Foto Produk</label>
+          {!image ? (
+            <label className="flex flex-col items-center justify-center border-2 border-dashed border-slate-300 rounded-xl h-48 cursor-pointer hover:bg-slate-50 transition-colors">
+              <span className="text-slate-400 font-medium">Klik untuk Unggah Foto Produk</span>
+              <input type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
+            </label>
+          ) : (
+            <div className="relative border rounded-xl overflow-hidden bg-slate-100 flex justify-center items-center h-52">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={image} alt="Preview" className="max-h-full object-contain" />
+              <button 
+                onClick={() => setImage(null)} 
+                className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-8 h-8 flex items-center justify-center shadow hover:bg-red-600 font-bold transition-colors"
+              >
+                ✕
               </button>
-              <button onClick={handleLogout} className="text-xs bg-red-50 text-red-600 hover:bg-red-100 px-3 py-1.5 rounded-md transition font-semibold border border-red-200">
-                Keluar
-              </button>
-            </div>
-          </div>
-
-          <h1 className="text-3xl font-extrabold text-center text-blue-600 mb-1 mt-8">TokoTeks</h1>
-          <p className="text-center text-gray-500 mb-6 text-sm font-medium">Asisten AI Copywriting UMKM 🚀</p>
-
-          <div onClick={handleImageClick} className={`border-2 border-dashed rounded-xl text-center mb-5 cursor-pointer transition-colors relative overflow-hidden flex flex-col items-center justify-center ${ imagePreview ? 'border-blue-500 bg-blue-50' : 'border-gray-300 hover:bg-gray-50 min-h-[160px]' }`}>
-            <input type="file" accept="image/*" ref={fileInputRef} onChange={handleFileChange} className="hidden" />
-            {imagePreview ? (
-              <div className="relative w-full h-48">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={imagePreview} alt="Preview Produk" className="w-full h-full object-contain bg-white" />
-                <button onClick={handleRemoveImage} className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1.5 hover:bg-red-600 shadow-md transition-colors" title="Hapus Gambar">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" /></svg>
-                </button>
-              </div>
-            ) : (
-              <>
-                <div className="text-4xl mb-2">📸</div>
-                <p className="text-gray-600 font-medium text-sm px-4">Klik untuk Unggah Foto Produk</p>
-              </>
-            )}
-          </div>
-
-          <div className="space-y-4 mb-6">
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1.5">Target Platform</label>
-              <select value={platform} onChange={(e) => setPlatform(e.target.value)} className="w-full border border-gray-300 rounded-lg p-3 text-sm outline-none focus:ring-2 focus:ring-blue-500 transition">
-                <option value="ecommerce">Shopee / Tokopedia (Fokus SEO)</option>
-                <option value="sosmed">TikTok / Instagram (Fokus Viral)</option>
-                <option value="chat">WhatsApp (Fokus Broadcast/Promo)</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1.5">Gaya Bahasa Jualan</label>
-              <select value={style} onChange={(e) => setStyle(e.target.value)} className="w-full border border-gray-300 rounded-lg p-3 text-sm outline-none focus:ring-2 focus:ring-blue-500 transition">
-                <option value="fomo">🔥 Hard Selling (Mendesak/FOMO)</option>
-                <option value="santai">💬 Santai & Gaul (Bahasa Lokal)</option>
-                <option value="elegan">✨ Elegan & Profesional (Premium)</option>
-              </select>
-            </div>
-          </div>
-
-          <button onClick={handleGenerate} disabled={loading} className={`w-full text-white font-bold py-3.5 px-4 rounded-xl transition-colors shadow-md flex justify-center items-center gap-2 ${loading ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'}`}>
-            <span>{loading ? '⏳' : '✨'}</span> 
-            {loading ? 'AI Sedang Menulis...' : 'Buat Teks Jualan Sekarang'}
-          </button>
-
-          {result && (
-            <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-xl">
-              <div className="flex justify-between items-center mb-3">
-                <h3 className="font-bold text-blue-800 text-sm">Hasil Copywriting:</h3>
-                <button onClick={() => navigator.clipboard.writeText(result)} className="text-xs font-semibold bg-white border border-blue-300 text-blue-600 px-3 py-1.5 rounded-lg hover:bg-blue-100 transition shadow-sm">
-                  📋 Salin Teks
-                </button>
-              </div>
-              <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">{result}</p>
             </div>
           )}
         </div>
-      </main>
-    </>
+
+        {/* PILIHAN TARGET PLATFORM */}
+        <div className="mb-4">
+          <label className="block text-sm font-bold text-slate-700 mb-2">Target Platform</label>
+          <select 
+            value={targetPlatform} 
+            onChange={(e) => setTargetPlatform(e.target.value)}
+            className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium text-slate-700"
+          >
+            <option>Shopee / Tokopedia (Fokus SEO)</option>
+            <option>TikTok / Instagram (Fokus Viral)</option>
+            <option>WhatsApp (Fokus Broadcast/Promo)</option>
+          </select>
+        </div>
+
+        {/* PILIHAN GAYA BAHASA */}
+        <div className="mb-8">
+          <label className="block text-sm font-bold text-slate-700 mb-2">Gaya Bahasa Jualan</label>
+          <select 
+            value={style} 
+            onChange={(e) => setStyle(e.target.value)}
+            className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium text-slate-700"
+          >
+            <option>🔥 Hard Selling (Mendesak/FOMO)</option>
+            <option>💬 Santai & Gaul (Bahasa Lokal)</option>
+            <option>✨ Elegan & Profesional (Premium)</option>
+          </select>
+        </div>
+
+        {/* TOMBOL EKSEKUSI */}
+        <button
+          onClick={handleGenerate}
+          disabled={loading}
+          className={`w-full py-4 text-white font-bold rounded-xl shadow-lg shadow-blue-200 transition-all text-center flex items-center justify-center gap-2 ${
+            loading ? 'bg-blue-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 active:scale-[0.99]'
+          }`}
+        >
+          {loading ? (
+            <>
+              <span className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent"></span>
+              Sedang Meracik Mantra Jualan...
+            </>
+          ) : (
+            '✨ Buat Teks Jualan Sekarang'
+          )}
+        </button>
+
+        {/* OUTPUT AREA: DUA KOTAK UX TERPISAH */}
+        {copywriting && (
+          <div className="mt-8 space-y-6 pt-6 border-t border-slate-100 animate-fadeIn">
+            <h3 className="text-lg font-bold text-slate-800">🎉 Hasil Racikan AI Selesai:</h3>
+            
+            {/* KOTAK 1: JUDUL SEO */}
+            <div className="p-4 bg-blue-50 border border-blue-200 rounded-xl">
+              <div className="flex justify-between items-center mb-3">
+                <span className="text-xs font-extrabold text-blue-700 uppercase tracking-wider">📌 Judul Produk (SEO Friendly)</span>
+                <button 
+                  onClick={() => handleCopy(copywriting.title, 'title')} 
+                  className={`text-xs px-3 py-1.5 font-bold rounded-lg border transition-all shadow-sm ${
+                    copiedTitle ? 'bg-green-500 border-green-500 text-white' : 'bg-white border-blue-200 text-blue-600 hover:bg-blue-100'
+                  }`}
+                >
+                  {copiedTitle ? 'Tersalin! ✅' : '📋 Salin Judul'}
+                </button>
+              </div>
+              <p className="text-slate-800 font-semibold leading-relaxed">{copywriting.title}</p>
+            </div>
+
+            {/* KOTAK 2: DESKRIPSI UTUH */}
+            <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl">
+              <div className="flex justify-between items-center mb-3">
+                <span className="text-xs font-extrabold text-slate-600 uppercase tracking-wider">📝 Deskripsi Lengkap Produk</span>
+                <button 
+                  onClick={() => handleCopy(copywriting.description, 'desc')} 
+                  className={`text-xs px-3 py-1.5 font-bold rounded-lg border transition-all shadow-sm ${
+                    copiedDesc ? 'bg-green-500 border-green-500 text-white' : 'bg-white border-slate-300 text-slate-600 hover:bg-slate-100'
+                  }`}
+                >
+                  {copiedDesc ? 'Tersalin! ✅' : '📋 Salin Deskripsi'}
+                </button>
+              </div>
+              <p className="text-slate-700 text-sm whitespace-pre-wrap leading-relaxed">{copywriting.description}</p>
+            </div>
+
+          </div>
+        )}
+      </div>
+    </main>
   );
 }
