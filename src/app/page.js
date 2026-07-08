@@ -64,11 +64,28 @@ export default function Home() {
     setResult("");
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
+  // Mesin Kompresi Gambar Otomatis
   const fileToBase64 = (file) => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.readAsDataURL(file);
-      reader.onload = () => resolve(reader.result);
+      reader.onload = (event) => {
+        const img = new Image();
+        img.src = event.target.result;
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const MAX_WIDTH = 800; // Membatasi lebar maksimal gambar agar aman di Vercel
+          const scaleSize = MAX_WIDTH / img.width;
+          canvas.width = MAX_WIDTH;
+          canvas.height = img.height * scaleSize;
+          
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          
+          // Mengubah hasil padatan ke JPEG kualitas 70% (Sangat kecil & aman!)
+          resolve(canvas.toDataURL('image/jpeg', 0.7));
+        };
+      };
       reader.onerror = (error) => reject(error);
     });
   };
