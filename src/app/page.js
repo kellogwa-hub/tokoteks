@@ -92,17 +92,32 @@ export default function Home() {
         const payWithSnap = () => {
           window.snap.pay(data.token, {
             onSuccess: function(result) {
-              alert("Pembayaran berhasil! Saldo token Anda akan segera bertambah.");
-              checkUser(); // Refresh UI
+              alert("Pembayaran asli berhasil! Saldo token Anda akan segera bertambah.");
+              checkUser();
             },
             onPending: function(result) {
-              alert("Menunggu pembayaran Anda!");
+              alert("Menunggu pembayaran asli Anda diselesaikan.");
             },
             onError: function(result) {
               alert("Pembayaran gagal!");
             },
-            onClose: function() {
-              alert("Anda menutup kotak kasir sebelum menyelesaikannya.");
+            onClose: async function() {
+              // --- JALUR VIP DEMO DICODING ---
+              const confirmDemo = confirm("🤖 [MODE DEMO JURI]\n\nAnda menutup kasir Midtrans. Apakah Anda ingin menyimulasikan pembayaran lunas secara otomatis tanpa membuka simulator?");
+              
+              if (confirmDemo) {
+                try {
+                  await fetch('/api/topup-demo', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: user.email })
+                  });
+                  alert("✅ Ajaib! 10 Token berhasil disuntikkan ke akun Anda.");
+                  checkUser(); // Refresh UI saldo secara instan
+                } catch (err) {
+                  alert("Gagal menyuntikkan token demo.");
+                }
+              }
             }
           });
         };
