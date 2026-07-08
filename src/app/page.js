@@ -86,11 +86,40 @@ export default function Home() {
       });
       const data = await res.json();
       
-      if (data.url) {
-        window.location.href = data.url; // Buka halaman kasir Midtrans
+      if (data.token) {
+        // Fungsi untuk memanggil pop-up Midtrans
+        const payWithSnap = () => {
+          window.snap.pay(data.token, {
+            onSuccess: function(result) {
+              alert("Pembayaran berhasil! Saldo token Anda akan segera bertambah.");
+              checkUser(); // Refresh UI
+            },
+            onPending: function(result) {
+              alert("Menunggu pembayaran Anda!");
+            },
+            onError: function(result) {
+              alert("Pembayaran gagal!");
+            },
+            onClose: function() {
+              alert("Anda menutup kotak kasir sebelum menyelesaikannya.");
+            }
+          });
+        };
+
+        // Cek apakah mesin pop-up Midtrans sudah dipasang di browser
+        if (!document.getElementById('midtrans-script')) {
+          const script = document.createElement('script');
+          script.id = 'midtrans-script';
+          script.src = 'https://app.sandbox.midtrans.com/snap/snap.js';
+          script.setAttribute('data-client-key', data.clientKey);
+          script.onload = () => payWithSnap();
+          document.body.appendChild(script);
+        } else {
+          payWithSnap();
+        }
+
       } else {
-        // JIKA GAGAL, MAKA LAYAR AKAN BERTERIAK MEMBERITAHU PENYEBABNYA
-        alert("Gagal memanggil kasir: " + (data.error || "URL pembayaran tidak ditemukan"));
+        alert("Gagal memanggil kasir: " + (data.error || "Token pembayaran tidak ditemukan"));
       }
     } catch (error) {
       alert("Gagal menghubungi server kasir: " + error.message);
