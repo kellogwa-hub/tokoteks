@@ -85,9 +85,15 @@ export default function Home() {
         body: JSON.stringify({ email: user.email, userId: user.id })
       });
       const data = await res.json();
-      if (data.url) window.location.href = data.url;
+      
+      if (data.url) {
+        window.location.href = data.url; // Buka halaman kasir Midtrans
+      } else {
+        // JIKA GAGAL, MAKA LAYAR AKAN BERTERIAK MEMBERITAHU PENYEBABNYA
+        alert("Gagal memanggil kasir: " + (data.error || "URL pembayaran tidak ditemukan"));
+      }
     } catch (error) {
-      alert("Gagal memanggil kasir.");
+      alert("Gagal menghubungi server kasir: " + error.message);
     }
   };
 
