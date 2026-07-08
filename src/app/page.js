@@ -60,11 +60,19 @@ export default function Home() {
         if (error) throw error;
         alert("Pendaftaran berhasil! Anda sekarang sudah masuk.");
         setShowAuthModal(false);
+        
+        // --- BERSIHKAN DATA ---
+        setEmail('');
+        setPassword('');
       } else {
         // Proses Masuk
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
         setShowAuthModal(false);
+        
+        // --- BERSIHKAN DATA ---
+        setEmail('');
+        setPassword('');
       }
     } catch (error) {
       alert("Gagal: " + error.message);
@@ -75,6 +83,11 @@ export default function Home() {
 
   const logout = async () => {
     await supabase.auth.signOut();
+    
+    // --- BERSIHKAN SEMUA DATA SAAT KELUAR ---
+    setEmail('');
+    setPassword('');
+    setShowPassword(false); // Kembalikan ikon mata jadi tertutup
   };
 
   const handleTopUp = async () => {
