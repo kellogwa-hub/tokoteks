@@ -23,6 +23,7 @@ export async function POST(req) {
       customer_details: {
         email: email,
       },
+      custom_field1: email // <--- TAMBAHKAN BARIS INI (Titipan identitas ke Midtrans)
     };
 
     const transaction = await snap.createTransaction(parameter);
