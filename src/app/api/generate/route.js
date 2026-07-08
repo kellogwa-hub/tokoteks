@@ -69,6 +69,24 @@ export async function POST(req) {
 
   } catch (error) {
     console.error("Sistem Error:", error);
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    
+    // --- PENERJEMAH ERROR OTOMATIS KE BAHASA INDONESIA ---
+    let pesanIndonesia = "Terjadi kesalahan sistem yang tidak diketahui.";
+    const pesanAsli = error.message || "";
+
+    if (pesanAsli.includes("Invalid path specified in request URL")) {
+      pesanIndonesia = "Gagal menghubungkan ke database! Alasan: Alamat URL Supabase di Vercel salah ketik, mengandung tanda kutip, atau ada spasi tambahan.";
+    } else if (pesanAsli.includes("API key not valid")) {
+      pesanIndonesia = "Gagal memanggil AI! Kunci API Gemini Anda tidak sah atau salah salin.";
+    } else if (pesanAsli.includes("violates row-level security policy")) {
+      pesanIndonesia = "Akses ditolak oleh database! Sistem keamanan RLS aktif dan Anda membutuhkan Service Role Key.";
+    } else if (pesanAsli.includes("FetchError") || pesanAsli.includes("Network")) {
+      pesanIndonesia = "Koneksi internet terputus atau server sedang sibuk. Silakan coba lagi.";
+    } else {
+      // Jika ada error lain, kita tampilkan pesan asli di ujung agar tetap bisa dilacak
+      pesanIndonesia = `Terjadi kendala teknis: ${pesanAsli}`;
+    }
+
+    return NextResponse.json({ success: false, error: pesanIndonesia }, { status: 500 });
   }
 }
