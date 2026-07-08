@@ -125,6 +125,9 @@ export default function Home() {
     setEmail('');
     setPassword('');
     setShowPassword(false); // Kembalikan ikon mata jadi tertutup
+
+    setImage(null);         // Menghapus pratinjau foto produk di layar
+    setCopywriting(null);   // Menghapus teks jualan yang sudah terlanjur dibuat
   };
 
   const handleTopUp = async () => {
