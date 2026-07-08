@@ -202,13 +202,15 @@ export default function Home() {
       const response = await fetch('/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ image, targetPlatform, style }),
+        body: JSON.stringify({ image, targetPlatform, style, email: user.email }), // <-- Kirim email ke backend
       });
 
       const data = await response.json();
       
       if (data.success) {
-        setCredits((prev) => prev - 1);
+        // Ambil data saldo akurat yang sudah dipotong dari database
+        setCredits(data.newCredits); 
+        
         const parsedResult = JSON.parse(data.result);
         setCopywriting(parsedResult);
       } else {

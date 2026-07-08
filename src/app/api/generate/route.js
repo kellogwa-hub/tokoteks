@@ -1,11 +1,18 @@
 import { NextResponse } from 'next/server';
-import { GoogleGenerativeAI } from '@google/generative-ai'; // <--- NAMA MESIN YANG BENAR
+import { GoogleGenerativeAI } from '@google/generative-ai';
+import { createClient } from '@supabase/supabase-js'; // <-- Hubungkan ke Supabase
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY); // <--- NAMA MESIN YANG BENAR
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+
+// Inisialisasi Supabase Backend memakai kunci master service_role
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 export async function POST(req) {
   try {
-    const { image, targetPlatform, style } = await req.json();
+    // Kita minta kiriman data 'email' juga dari frontend
+    const { image, targetPlatform, style, email } = await req.json(); 
 
     // 1. Kunci Model ke gemini-3.1-flash-lite & Paksa Output berupa JSON
     const model = genAI.getGenerativeModel({ 
@@ -19,7 +26,7 @@ export async function POST(req) {
     WAJIB menjawab hanya dalam format JSON murni tanpa markdown tambahan, mengikuti struktur ini:
     {
       "title": "Judul produk yang SEO friendly",
-      "description": "Deskripsi lengkap dengan keunggulan, spesifikasi, dan hashtag"
+      "description": "Deskripsi lengkap dengan keunggulan, specifications, and hashtag"
     }`;
 
     // 3. Mengubah format gambar base64 agar dipahami Gemini
@@ -37,8 +44,18 @@ export async function POST(req) {
     const response = await model.generateContent([instruksiTeks, komponenGambar]);
     const hasilTeks = response.response.text();
 
-    // 5. Lempar hasilnya kembali ke frontend
-    return NextResponse.json({ success: true, result: hasilTeks });
+    // --- 5. PROSES PENGURANGAN TOKEN DI DATABASE SUPABASE ---
+    let saldoTerbaru = 0;
+    if (email) {
+      const { data: userData } = await supabase.from('user_credits').select('kredit').eq('email', email).single();
+      if (userData) {
+        saldoTerbaru = Math.max(0, userData.kredit - 1); // Kurangi 1 token, pastikan tidak minus
+        await supabase.from('user_credits').update({ kredit: saldoTerbaru }).eq('email', email);
+      }
+    }
+
+    // 6. Lempar hasilnya beserta saldo terbaru yang sah ke frontend
+    return NextResponse.json({ success: true, result: hasilTeks, newCredits: saldoTerbaru });
 
   } catch (error) {
     console.error("Gemini Error:", error);
