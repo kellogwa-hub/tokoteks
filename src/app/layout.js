@@ -13,7 +13,10 @@ const geistMono = Geist_Mono({
 
 export const metadata = {
   title: "TokoTeks - Asisten AI Copywriting UMKM",
-  description: "Buat teks jualan dan caption promosi otomatis untuk UMKM dengan kecerdasan buatan (AI).",
+  description: "Biarkan AI meracik kata, Anda tinggal terima pesanan 🚀",
+  other: {
+    'dicoding:email': 'kellog.mk@gmail.com',
+  },
 };
 
 export default function RootLayout({ children }) {
