@@ -245,6 +245,11 @@ export default function Home() {
         <div className="flex items-center gap-4">
           {user ? (
             <>
+              {/* BARIS BARU: Menampilkan Email Pengguna */}
+              <span className="text-sm font-semibold text-slate-600 hidden md:inline-block border-r border-slate-200 pr-4">
+                👤 {user.email}
+              </span>
+
               <div className="flex items-center gap-2 bg-yellow-50 px-3 py-1.5 rounded-full border border-yellow-200 shadow-sm">
                 <span className="text-sm font-bold text-yellow-700">🪙 {credits} Token</span>
               </div>
