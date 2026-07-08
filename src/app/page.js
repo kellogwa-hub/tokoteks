@@ -43,8 +43,17 @@ export default function Home() {
   };
 
   const login = async () => {
-    await supabase.auth.signInWithOAuth({ provider: 'google' });
-  };
+  const email = prompt("Masukkan email Anda untuk menerima link akses otomatis (Magic Link):");
+  if (email) {
+    alert("Sedang mengirim tiket masuk... Mohon tunggu sebentar.");
+    const { error } = await supabase.auth.signInWithOtp({ email });
+    if (error) {
+      alert("Gagal mengirim link: " + error.message);
+    } else {
+      alert("✅ Tiket ajaib telah dikirim! Silakan cek Kotak Masuk atau folder Spam di email Anda (" + email + "), lalu klik link tersebut untuk langsung masuk ke aplikasi.");
+    }
+  }
+};
 
   const logout = async () => {
     await supabase.auth.signOut();
