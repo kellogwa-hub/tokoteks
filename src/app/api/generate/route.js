@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
-import { GoogleGenAI } from '@google/generative-ai'; // Sesuaikan dengan nama package import Anda
+import { GoogleGenerativeAI } from '@google/generative-ai'; // <--- NAMA MESIN YANG BENAR
 
-const genAI = new GoogleGenAI(process.env.GEMINI_API_KEY);
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY); // <--- NAMA MESIN YANG BENAR
 
 export async function POST(req) {
   try {
