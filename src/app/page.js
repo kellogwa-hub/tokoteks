@@ -20,6 +20,7 @@ export default function Home() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [authLoading, setAuthLoading] = useState(false);
+  const [showHelpModal, setShowHelpModal] = useState(false);
 
   // --- STATE UNTUK AI ---
   const [image, setImage] = useState(null);
@@ -341,10 +342,52 @@ export default function Home() {
         </div>
       )}
 
+      {/* POP-UP MODAL BANTUAN (PETUNJUK PENGGUNAAN) */}
+      {showHelpModal && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex justify-center items-center p-4 animate-fadeIn">
+          <div className="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-md relative">
+            <button onClick={() => setShowHelpModal(false)} className="absolute top-4 right-4 text-slate-400 hover:text-red-500 font-bold text-xl">✕</button>
+            <h2 className="text-2xl font-extrabold text-slate-800 mb-4">📖 Cara Penggunaan</h2>
+            
+            <div className="space-y-4 text-sm text-slate-600 mb-6">
+              <div className="flex gap-3">
+                <span className="text-blue-600 font-bold">1.</span>
+                <p><b>Masuk / Daftar:</b> Buat akun terlebih dahulu agar Anda bisa mulai meracik dan menyimpan token.</p>
+              </div>
+              <div className="flex gap-3">
+                <span className="text-blue-600 font-bold">2.</span>
+                <p><b>Unggah Foto:</b> Klik kotak abu-abu untuk memasukkan foto produk jualan Anda.</p>
+              </div>
+              <div className="flex gap-3">
+                <span className="text-blue-600 font-bold">3.</span>
+                <p><b>Pilih Pengaturan:</b> Tentukan target platform (Shopee/TikTok/WA) dan gaya bahasa yang diinginkan.</p>
+              </div>
+              <div className="flex gap-3">
+                <span className="text-blue-600 font-bold">4.</span>
+                <p><b>Mulai Meracik:</b> Klik tombol biru&quot;Buat Teks Jualan Sekarang&quot;. AI akan menganalisis gambar dan membuatkan teks untuk Anda (memotong 1 Token).</p>
+              </div>
+            </div>
+
+            <button onClick={() => setShowHelpModal(false)} className="w-full py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition-colors">
+              Tutup & Mulai Meracik
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* HEADER / NAVBAR */}
       <header className="w-full bg-white border-b border-slate-200 px-6 py-4 flex justify-between items-center shadow-sm sticky top-0 z-50">
         <div className="font-extrabold text-xl text-blue-600 tracking-tight">TokoTeks</div>
         <div className="flex items-center gap-4">
+          
+          {/* --- SUNTIKKAN TOMBOL BANTUAN DI SINI --- */}
+          <button 
+            onClick={() => setShowHelpModal(true)} 
+            className="text-sm font-medium text-slate-500 hover:text-blue-600 transition-colors hidden sm:block mr-2"
+          >
+            Bantuan
+          </button>
+                             
           {user ? (
             <>
               {/* BARIS BARU: Menampilkan Email Pengguna */}
