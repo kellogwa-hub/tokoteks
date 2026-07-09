@@ -309,11 +309,11 @@ export default function Home() {
         // --- BATAS EFEK MENGETIK ---
 
       } else {
-        alert('Gagal meracik teks: ' + (data.error || 'Terjadi kesalahan server'));
+        alert('🤖 Maaf, sistem AI Google saat ini sedang sibuk atau gangguan. \n\nTenang saja, Token Anda tidak terpotong! Silakan coba lagi dalam beberapa menit.');
       }
     } catch (error) {
       console.error(error);
-      alert('Terjadi kesalahan koneksi sistem');
+      alert('🔌 Gagal terhubung ke server. Pastikan koneksi internet Anda stabil, lalu coba lagi. Token Anda dijamin aman!');
     } finally {
       setLoading(false);
     }
