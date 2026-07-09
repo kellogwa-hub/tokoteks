@@ -271,7 +271,43 @@ export default function Home() {
         setCredits(data.newCredits); 
         
         const parsedResult = JSON.parse(data.result);
-        setCopywriting(parsedResult);
+        // --- 🪄 EFEK MENGETIK (TYPEWRITER) DIMULAI ---
+        setCopywriting({ title: "", description: "" }); // Siapkan wadah kosong di layar
+        
+        const fullTitle = parsedResult.title || "";
+        const fullDesc = parsedResult.description || "";
+        let currentTitle = "";
+        let currentDesc = "";
+        let i = 0;
+        let j = 0;
+        
+        // Atur kecepatan ketikan di sini (semakin kecil angka = semakin cepat)
+        const typingSpeed = 15; 
+
+        const typeWriterInterval = setInterval(() => {
+          // 1. Ketik Judul terlebih dahulu sampai selesai
+          if (i < fullTitle.length) {
+            currentTitle += fullTitle.charAt(i);
+            i++;
+          } 
+          // 2. Setelah judul beres, lanjut ketik Deskripsi
+          else if (j < fullDesc.length) {
+            currentDesc += fullDesc.charAt(j);
+            j++;
+          } 
+          // 3. Jika semuanya sudah selesai diketik, matikan mesin ketik
+          else {
+            clearInterval(typeWriterInterval);
+          }
+          
+          // Perbarui tampilan di layar huruf demi huruf
+          setCopywriting({
+            title: currentTitle,
+            description: currentDesc
+          });
+        }, typingSpeed);
+        // --- BATAS EFEK MENGETIK ---
+
       } else {
         alert('Gagal meracik teks: ' + (data.error || 'Terjadi kesalahan server'));
       }
