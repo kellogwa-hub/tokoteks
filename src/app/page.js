@@ -127,13 +127,14 @@ export default function Home() {
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: 'https://tokoteks.vercel.app/', // Pastikan kembali ke website Anda
     });
-    setAuthLoading(false);
-
+    
     if (error) {
       alert("Gagal mengirim link pemulihan: " + error.message);
     } else {
-      alert("✅ Link pemulihan telah dikirim! Silakan cek kotak masuk atau folder spam di email: " + email);
+      alert("✅ Jika email tersebut terdaftar di sistem kami, link pemulihan telah dikirim. Silakan cek kotak masuk atau folder spam Anda.");
     }
+
+    setAuthLoading(false);
   };
 
   const logout = async () => {
@@ -315,10 +316,15 @@ export default function Home() {
                   
                   {/* TOMBOL LUPA PASSWORD (Hanya muncul di mode Masuk/Bukan Daftar) */}
                   {!isSignUp && (
-                    <button 
-                      type="button" 
-                      onClick={handleResetPassword} 
-                      className="text-xs text-blue-600 hover:text-blue-800 font-bold hover:underline"
+                    <button
+                      type="button"
+                      onClick={handleResetPassword}
+                      disabled={!email} // Tombol mati jika variabel email kosong
+                      className={`text-sm font-medium transition-colors ${
+                        !email 
+                        ? 'text-slate-300 cursor-not-allowed' // Warna pudar & kursor dilarang jika kosong
+                        : 'text-blue-600 hover:text-blue-700 hover:underline' // Warna biru menyala jika email sudah diisi
+                      }`}
                     >
                       Lupa Password?
                     </button>
