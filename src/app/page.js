@@ -71,6 +71,15 @@ export default function Home() {
 
   const handleAuth = async (e) => {
     e.preventDefault();
+
+    // --- SUNTIKKAN SATPAM EMAIL DI SINI ---
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      alert("⚠️ Mohon masukkan format alamat email yang benar (contoh: nama@email.com)");
+      return; // Hentikan proses jika email palsu/salah ketik
+    }
+    // --- BATAS SATPAM ---
+
     setAuthLoading(true);
     try {
       if (isSignUp) {
@@ -106,6 +115,14 @@ export default function Home() {
       return;
     }
     
+    // --- SUNTIKKAN SATPAM EMAIL DI SINI ---
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      alert("⚠️ Format email tidak valid! Mohon ketik alamat email yang benar.");
+      return; 
+    }
+    // --- BATAS SATPAM ---
+
     setAuthLoading(true);
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: 'https://tokoteks.vercel.app/', // Pastikan kembali ke website Anda
