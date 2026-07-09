@@ -270,6 +270,22 @@ export default function Home() {
         // Ambil data saldo akurat yang sudah dipotong dari database
         setCredits(data.newCredits); 
         
+        // =========================================================
+        // --- 📊 SUNTIKKAN FITUR PELACAK TOKEN DI SINI ---
+        // (Asumsi: API /api/generate Anda akan mengirimkan objek 'usage')
+        if (data.usage && user) {
+          supabase.from('token_logs').insert({
+            user_id: user.id,
+            input_tokens: data.usage.promptTokenCount,
+            output_tokens: data.usage.candidatesTokenCount,
+            total_tokens: data.usage.totalTokenCount
+          }).then(({ error }) => {
+            if (error) console.error("Gagal mencatat log token:", error);
+          });
+        }
+        // --- BATAS PELACAK TOKEN ---
+        // =========================================================
+
         const parsedResult = JSON.parse(data.result);
         // --- 🪄 EFEK MENGETIK (TYPEWRITER) DIMULAI ---
         setCopywriting({ title: "", description: "" }); // Siapkan wadah kosong di layar

@@ -37,7 +37,8 @@ export async function POST(req) {
 
     const response = await model.generateContent([instruksiTeks, komponenGambar]);
     const hasilTeks = response.response.text();
-
+    const strukToken = response.response.usageMetadata;
+    
     // --- PROSES PENGURANGAN TOKEN DENGAN DETEKSI ERROR SAKTI ---
     let saldoTerbaru = 0;
     if (email) {
@@ -65,7 +66,13 @@ export async function POST(req) {
       }
     }
 
-    return NextResponse.json({ success: true, result: hasilTeks, newCredits: saldoTerbaru });
+    // --- TAMBAHKAN 'usage' KE DALAM PAKET PENGIRIMAN ---
+    return NextResponse.json({ 
+      success: true, 
+      result: hasilTeks, 
+      newCredits: saldoTerbaru,
+      usage: strukToken // <-- INI YANG AKAN DITANGKAP OLEH PAGE.JS
+    });
 
   } catch (error) {
     console.error("Sistem Error:", error);
